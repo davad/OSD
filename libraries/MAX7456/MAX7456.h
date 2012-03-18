@@ -30,6 +30,10 @@
 #define VM0_READ_ADDR   0x80
 #define VM1_WRITE_ADDR   0x01
 #define STATUS_ADDR  0x0a
+#define HOS_READ_ADDR 0x82
+#define VOS_READ_ADDR 0x83
+#define HOS_WRITE_ADDR 0x02
+#define VOS_WRITE_ADDR 0x03
 
 // video mode register 0 bits
 #define VIDEO_BUFFER_DISABLE 0x01
@@ -103,6 +107,7 @@ class MAX7456 : public Print
   void write_to_screen(char s[], byte line);
   void write(uint8_t c);
   byte convert_ascii(int character);
+  void offset(int horizontal, int vertical);
   void clear();
   void home();
   void blink(byte onoff);

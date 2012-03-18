@@ -140,12 +140,42 @@ byte MAX7456::convert_ascii(int character)
     lookup_char = 0x4b; // >
   else if (character == 63)
     lookup_char = 0x42; // ?
-  else
-    lookup_char = 0x00; // out of range, blank space
+//  else
+//    lookup_char = 0x00; // out of range, blank space
 
  return (lookup_char);
 }
+// Adjust the horizontal and vertical offet
+// Horizontal offset between -32 and +31
+// Vertical offset between -15 and +16
+void MAX7456::offset(int horizontal, int vertical)
+{
+  //Constrain horizontal between -32 and +31
+  if (horizontal < -32) 
+     horizontal = -32;
+  else if (horizontal > 31)
+    horizontal = 31;
+   
+  //Constrain vertical between -15 and +16
+  if (vertical < -15) 
+    vertical = -15;
+  else if (vertical > 16)
+    vertical = 16;
 
+  // Write new offsets to the OSD
+  MAX7456_previous_SPCR = SPCR;  // save SPCR, so we play nice with other SPI peripherals
+  SPCR = MAX7456_SPCR;  // set SPCR to what we need
+  
+  digitalWrite(_slave_select,LOW);
+  MAX7456_spi_transfer(HOS_WRITE_ADDR); //horizontal offset
+  MAX7456_spi_transfer(horizontal);
+  
+  MAX7456_spi_transfer(VOS_WRITE_ADDR); //vertical offset
+  MAX7456_spi_transfer(vertical);
+  digitalWrite(_slave_select,HIGH);  
+  SPCR = MAX7456_previous_SPCR;   // restore SPCR   
+  
+}
 // clear the screen
 void MAX7456::clear()
 {
