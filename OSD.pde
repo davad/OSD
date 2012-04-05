@@ -5,6 +5,8 @@
 
 char serialData;
 String received;
+int horizOffset = 28;
+int vertOffset = -15;
 
 MAX7456 osd;
 
@@ -15,7 +17,7 @@ void setup()
 
   osd.begin();
   //adjust horiz & vert offset
-  osd.offset(28,-15);
+  osd.offset(horizOffset, vertOffset);
   info_screen();
 
   //  test_screen();
@@ -33,7 +35,7 @@ void loop()
 void info_screen() 
 {
   osd.clear();
-  //  osd.println("First Line");
+//    osd.println("First Line");
   osd.println("\n\n\n\n");
   osd.println("       MARS ROVER OSD");
   osd.println("\n\n\n");
@@ -82,6 +84,7 @@ bool receive_commands() {
 
       if(received == "$CLEAR") {
         osd.clear();
+        Serial.println("Cearing screen");
         return true;
       }
       else if(received == "$PRINT") {
@@ -103,15 +106,20 @@ bool receive_commands() {
 
         int lineNumber = 0;
         for(int i=0; i<2; i++) {
-          serialData = Serial.read(); // Convert from ASCII to number
+          serialData = Serial.read(); 
           received += (char)serialData;
 
-          if((serialData - '0') > 9 || (serialData - '0') < 0) {
+          // Convert from ASCII to number
+          serialData -= '0';
+          // Check that it's in range
+          if((serialData) > 9 || (serialData) < 0) {
             bad_command(received, exampleCommand);
             return false;
           }
           lineNumber = lineNumber*10 + serialData;
         }
+        Serial.print("Print to line: ");
+        Serial.println(lineNumber, DEC);
 
         serialData = Serial.read();
         received += (char)serialData;
@@ -131,13 +139,102 @@ bool receive_commands() {
 
           if(serialData == ',') {
             // Finished parsing command
-            osd.write_to_screen( &lineText[0], (byte)lineNumber);
+            osd.write_to_screen( &lineText[0], (byte)(lineNumber + vertOffset) );
             Serial.println(received);
             return true;
           }
           lineText += (char)serialData;
         }
 
+      }
+      else if(received == "$OFFST") {
+        /*
+         * $OFFST,00,00,
+         * first 00 is the horizontal offset
+         * second 00 is the vertical offset
+         */
+
+        // Match the first ,00 of the command
+        while(Serial.available() < 3);
+
+        serialData = Serial.read();
+        received += (char)serialData;
+
+        if(serialData != ',') {
+          bad_command(received, exampleCommand);
+          return false;
+        }
+
+        horizOffset = 0;
+        for(int i=0; i<2; i++) {
+          serialData = Serial.read(); 
+          received += (char)serialData;
+
+          // Convert from ASCII to number
+          serialData -= '0';
+          // Check that it's in range
+          if((serialData) > 9 || (serialData) < 0) {
+            bad_command(received, exampleCommand);
+            return false;
+          }
+          horizOffset  = horizOffset*10 + serialData;
+        }
+
+        // Match the second ,00, of the command
+        while(Serial.available() < 4);
+
+        serialData = Serial.read();
+        received += (char)serialData;
+
+        if(serialData != ',') {
+          bad_command(received, exampleCommand);
+          return false;
+        }
+
+        vertOffset = 0;
+        for(int i=0; i<2; i++) {
+          serialData = Serial.read(); 
+          received += (char)serialData;
+
+          // Convert from ASCII to number
+          serialData -= '0';
+          // Check that it's in range
+          if((serialData) > 9 || (serialData) < 0) {
+            bad_command(received, exampleCommand);
+            return false;
+          }
+          horizOffset  = horizOffset*10 + serialData;
+        }
+
+        serialData = Serial.read();
+        received += (char)serialData;
+        
+        if(serialData != ',') {
+          bad_command(received, exampleCommand);
+          return false;
+        }
+
+        // Now that the command is validated, validate the range of the offsets
+        // Horizontal offset should be between 0 and 63
+        // Corresponding to the hardware spec of -32 to +31 pixel offset
+        // Vertical offset should be between 0 and 31
+        // Corresponding to the hardware spec of -15 to +16 pixel offset
+        if(horizOffset > 63)
+          horizOffset = 63;
+        else if(horizoffset < 0)
+          horizOffset = 0; //This shouldn't be necessary, since it shouldn't parse negative numbers, but it doesn't hurt to be careful
+
+        if(vertOffset > 31)
+          vertOffset = 31;
+        else if(vertoffset < 0)
+          vertOffset = 0; //This shouldn't be necessary, since it shouldn't parse negative numbers, but it doesn't hurt to be careful
+
+        // Convert to range expected by the hardware
+        horizOffset -= 32;
+        vertOffset -=  15;
+
+        // Set the offset
+        osd.offset(horizOffset, vertOffset);
       }
       else {
         bad_command(received);
