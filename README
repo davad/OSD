@@ -1,0 +1,32 @@
+Implemented Commands
+#############
+
+$PRTLN,00,Text to be printed,
+Print, followed by line number, followed by text to be printed
+
+$PRINT,00,00,Text to be printed,
+Print, line number, 
+
+$CLEAR
+Clears the screen
+
+$OFFST,00,00,
+Set the horizontal and vertical offset.
+Horizontal offset is between 0 and 63 (corresponding to -32 to +31
+pixels in the OSD chip docs).
+Vertical offset is between 0 and 31 (corresponding to -15 to +16 pixels
+in the OSD chip docs).
+
+$VIDIN,0,
+Set the video input. Hardware supports lines 0 to 3.
+
+Possible Future Commands
+##############
+
+Next waypoint
+$WAYPT,000.00000N,000.00000W,
+
+Current speed
+$SPEED,100.0000,
+
+$LOCAT,000.00000N,000.00000W,
