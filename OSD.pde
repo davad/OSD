@@ -87,11 +87,11 @@ bool receive_commands() {
         Serial.println("Cearing screen");
         return true;
       }
-      else if(received == "$PRINT") {
-        //Command of the form $PRINT,00,Text to be printed to a line,
+      else if(received == "$PRTLN") {
+        //Command of the form $PRTLN,00,Text to be printed to a line,
         // where 00 is the line number and everything in the third parameter is 
         // the string to be printed to the screen.
-        exampleCommand = "$PRINT,01,Text to be printed to a line,";
+        exampleCommand = "$PRTLN,01,Text to be printed to a line,";
 
         //Check ,00, portion and store line number
         while(Serial.available() < 4);
@@ -139,7 +139,96 @@ bool receive_commands() {
 
           if(serialData == ',') {
             // Finished parsing command
-            osd.write_to_screen( &lineText[0], (byte)(lineNumber + vertOffset) );
+            osd.write_to_screen( &lineText[0], (byte)(lineNumber) );
+            Serial.println(received);
+            return true;
+          }
+          lineText += (char)serialData;
+        }
+
+      }
+      else if(received == "$PRINT") {
+        //Command of the form $PRINT,00,00,Text to be printed,
+        //First param: horizontal point to start (x)
+        //Second param: vertical point to start  (y)
+        //Third param: text to be printed
+        exampleCommand = "$PRINT,01,00,Text to be printed,";
+
+        //Check ,00 x portion and store line number
+        while(Serial.available() < 3);
+
+        serialData = Serial.read();
+        received += (char)serialData;
+
+        if(serialData != ',') {
+          bad_command(received, exampleCommand);
+          return false;
+        }
+
+        int x = 0;
+        for(int i=0; i<2; i++) {
+          serialData = Serial.read(); 
+          received += (char)serialData;
+
+          // Convert from ASCII to number
+          serialData -= '0';
+          // Check that it's in range
+          if((serialData) > 9 || (serialData) < 0) {
+            bad_command(received, exampleCommand);
+            return false;
+          }
+          x = x*10 + serialData;
+        }
+        Serial.print("Print to x: ");
+        Serial.println(x, DEC);
+
+        //Check ,00, y portion and store line number
+        while(Serial.available() < 4);
+
+        serialData = Serial.read();
+        received += (char)serialData;
+
+        if(serialData != ',') {
+          bad_command(received, exampleCommand);
+          return false;
+        }
+
+        int y = 0;
+        for(int i=0; i<2; i++) {
+          serialData = Serial.read(); 
+          received += (char)serialData;
+
+          // Convert from ASCII to number
+          serialData -= '0';
+          // Check that it's in range
+          if((serialData) > 9 || (serialData) < 0) {
+            bad_command(received, exampleCommand);
+            return false;
+          }
+          y = y*10 + serialData;
+        }
+        Serial.print("Print to line: ");
+        Serial.println(y, DEC);
+
+        serialData = Serial.read();
+        received += (char)serialData;
+
+        if(serialData != ',') {
+          bad_command(received, exampleCommand);
+          return false;
+        }
+
+
+        // Parse text to be printed
+        String lineText = "";
+        while(Serial.available() > 0) {
+          serialData = Serial.read();
+          received += (char)serialData;
+          Serial.print((char)serialData);
+
+          if(serialData == ',') {
+            // Finished parsing command
+            osd.write_to_screen( &lineText[0], (byte)x, (byte)y );
             Serial.println(received);
             return true;
           }
@@ -221,12 +310,12 @@ bool receive_commands() {
         // Corresponding to the hardware spec of -15 to +16 pixel offset
         if(horizOffset > 63)
           horizOffset = 63;
-        else if(horizoffset < 0)
+        else if(horizOffset < 0)
           horizOffset = 0; //This shouldn't be necessary, since it shouldn't parse negative numbers, but it doesn't hurt to be careful
 
         if(vertOffset > 31)
           vertOffset = 31;
-        else if(vertoffset < 0)
+        else if(vertOffset < 0)
           vertOffset = 0; //This shouldn't be necessary, since it shouldn't parse negative numbers, but it doesn't hurt to be careful
 
         // Convert to range expected by the hardware
