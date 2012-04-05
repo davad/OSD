@@ -10,11 +10,24 @@ int vertOffset = -15;
 
 MAX7456 osd;
 
+/* Mux variables */
+// Address pins and values
+int A0Pin = 3;
+int A1Pin = 2;
+int A0Val = LOW;
+int A1Val = LOW;
+int vidIn = 0; //Currently selected input
 
 void setup()
 {
   Serial.begin(9600);
 
+  // Select IN0 as the default input
+  pinMode(A0Pin,OUTPUT);
+  pinMode(A1Pin,OUTPUT);
+  set_video_in();
+  
+  // Setup OSD
   osd.begin();
   //adjust horiz & vert offset
   osd.offset(horizOffset, vertOffset);
@@ -39,8 +52,8 @@ void info_screen()
   osd.println("\n\n\n\n");
   osd.println("       MARS ROVER OSD");
   osd.println("\n\n\n");
-  osd.println("Build Date: 18 Mar 2012");
-  osd.println("Build SHA:  973f56acd3");
+  osd.println("Build Date: 5 Apr 2012");
+  osd.println("Build SHA:  bf74048991");
 
   delay(5000);
   osd.clear();
@@ -148,10 +161,12 @@ bool receive_commands() {
 
       }
       else if(received == "$PRINT") {
-        //Command of the form $PRINT,00,00,Text to be printed,
-        //First param: horizontal point to start (x)
-        //Second param: vertical point to start  (y)
-        //Third param: text to be printed
+        /*
+         * Command of the form $PRINT,00,00,Text to be printed,
+         * First param: horizontal point to start (x)
+         * Second param: vertical point to start  (y)
+         * Third param: text to be printed
+         */
         exampleCommand = "$PRINT,01,00,Text to be printed,";
 
         //Check ,00 x portion and store line number
@@ -242,6 +257,7 @@ bool receive_commands() {
          * first 00 is the horizontal offset
          * second 00 is the vertical offset
          */
+        exampleCommand = "$OFFST,00,00,";
 
         // Match the first ,00 of the command
         while(Serial.available() < 3);
@@ -292,7 +308,7 @@ bool receive_commands() {
             bad_command(received, exampleCommand);
             return false;
           }
-          horizOffset  = horizOffset*10 + serialData;
+          vertOffset  = vertOffset*10 + serialData;
         }
 
         serialData = Serial.read();
@@ -325,6 +341,53 @@ bool receive_commands() {
         // Set the offset
         osd.offset(horizOffset, vertOffset);
       }
+      else if(received == "$VIDIN") {
+        /*
+         * $VIDIN,0,
+         * Param is a number between 0 and 3
+         */
+        exampleCommand = "$VIDIN,0,";
+
+        // Match the ,0, of the command
+        while(Serial.available() < 3);
+
+        serialData = Serial.read();
+        received += (char)serialData;
+
+        // Check delimiter
+        if(serialData != ',') {
+          bad_command(received, exampleCommand);
+          return false;
+        }
+
+        // Get Video In line to display
+        serialData = Serial.read(); 
+        received += (char)serialData;
+
+        // Convert from ASCII to number
+        serialData -= '0';
+        // Check that it's in range
+        // Hardware supports IN0 to IN3
+        if((serialData) > 3 || (serialData) < 0) {
+          bad_command(received, exampleCommand);
+          return false;
+        }
+        int newVidIn = serialData;
+ 
+
+        serialData = Serial.read();
+        received += (char)serialData;
+        
+        // Check delimiter
+        if(serialData != ',') {
+          bad_command(received, exampleCommand);
+          return false;
+        }
+
+        // Execute command
+        vidIn = newVidIn;
+        set_video_in();
+      }
       else {
         bad_command(received);
         return false;
@@ -340,4 +403,27 @@ void bad_command(String error) {
 void bad_command(String error, String example) {
   Serial.println("Bad or malformed command: " + error);
   Serial.println("It looks like you were trying to send a command like: " + example);
+}
+
+void set_video_in() {
+  switch(vidIn) {
+    case 0:
+      A0Val =  LOW;
+      A1Val =  LOW;
+      break;
+    case 1:
+      A0Val = HIGH;
+      A1Val =  LOW;
+      break;
+    case 2:
+      A0Val =  LOW;
+      A1Val = HIGH;
+      break;
+    case 3:
+      A0Val = HIGH;
+      A1Val = HIGH;
+      break;
+  }
+  digitalWrite(A0Pin, A0Val);
+  digitalWrite(A1Pin, A1Val);
 }
