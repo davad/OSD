@@ -5,8 +5,8 @@
 
 char serialData;
 String received;
-int horizOffset = 28;
-int vertOffset = -15;
+int horizOffset = -27;
+int vertOffset = -5;
 
 MAX7456 osd;
 
@@ -387,6 +387,17 @@ bool receive_commands() {
         // Execute command
         vidIn = newVidIn;
         set_video_in();
+      }
+      else if(received == "$GETOF") {
+        /*
+         * $GETOF
+         * Return the vertical and horizontal offset
+         * Returns in the same format that is used to set
+         */
+        Serial.print("Horiz: ");
+        Serial.println(horizOffset + 32);
+        Serial.print("Vert: ");
+        Serial.println(vertOffset + 15);
       }
       else {
         bad_command(received);
