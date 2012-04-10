@@ -224,6 +224,10 @@ void MAX7456::write(uint8_t c)
       _cursor_x = CURSOR_X_MIN;
       return;
     }
+
+  // To print non-ascii character, this line must either be commented out
+  // or convert_ascii() needs to be modified to make sure it doesn't conflict
+  // with the special characters being printed.
   c = convert_ascii(c);
 
   MAX7456_previous_SPCR = SPCR;  // save SPCR, so we play nice with other SPI peripherals
