@@ -400,3 +400,112 @@ void MAX7456::noInvert()
 {
   invert(0);
 }
+
+// Returns all 0s for some reason
+void MAX7456::read_character(byte addr, char character[]) 
+{
+  // Enable the SPI
+  // Write VM0[3] = 0 to disable the OSD image.
+  Serial.println("Enable SPI, disable OSD output (section)");
+
+  MAX7456_previous_SPCR = SPCR;  // save SPCR, so we play nice with other SPI peripherals
+  SPCR = MAX7456_SPCR;  // set SPCR to what we need
+
+  digitalWrite(_slave_select, LOW);
+  //Serial.println("Enable SPI");
+  MAX7456_spi_transfer(VM0_WRITE_ADDR);
+  //Serial.println("Sent VM0_WRITE_ADDR");
+  MAX7456_spi_transfer(0x00|VERTICAL_SYNC_NEXT_VSYNC); // double check that the other bits can be zero
+  //delay(100); // Not sure if this delay is needed. It's used in the init code
+  
+  //Serial.println("Select character by address");
+  // Write CMAH[7:0]  = xxH  to select the character (0–255) to be read
+  MAX7456_spi_transfer(CMAH_WRITE_ADDR);
+  MAX7456_spi_transfer(addr);
+
+  //Serial.println("Read character data from NVRAM to Shadow RAM");
+  // Write CMM[7:0] = 0101xxxx to read the character data from the NVM to the shadow RAM
+  MAX7456_spi_transfer(CMM_WRITE_ADDR);
+  MAX7456_spi_transfer(0b01010000); // Double check that bits 0-3 can be zero
+  
+  char test[54];
+
+  for(int i = 0; i < 64; i++)
+  {
+    // Write CMAL[7:0] = xxH to select the 4-pixel byte (0–63) in the character to be read
+    MAX7456_spi_transfer(CMAL_WRITE_ADDR);
+    MAX7456_spi_transfer(i);
+
+    // Read CMDO[7:0] = xxH to read the selected 4-pixel byte of data
+    test[i] = MAX7456_spi_transfer(CMDO_READ_ADDR);
+    character[i] = MAX7456_spi_transfer(i);
+  }
+
+  // Write VM0[3] = 1 to enable the OSD image display.
+  MAX7456_spi_transfer(VM0_WRITE_ADDR);
+  MAX7456_spi_transfer(VERTICAL_SYNC_NEXT_VSYNC|OSD_ENABLE);
+  
+  digitalWrite(_slave_select, HIGH);
+  SPCR = MAX7456_previous_SPCR;   // restore SPCR
+  /*Serial.println("Done reading. Data collected.");
+  
+  Serial.println("Character: ");
+  for(int i = 0; i < 54; i++) {
+    Serial.print("0x");
+    Serial.print(character[i], HEX);
+    Serial.print(",");
+  }
+  Serial.println();
+  Serial.println("Test: ");
+  for(int i = 0; i < 54; i++) {
+    Serial.print("0x");
+    Serial.print(test[i], HEX);
+    Serial.print(",");
+  }
+  Serial.println();
+  */
+}
+
+
+void MAX7456::write_character(byte addr, char character[]) 
+{
+  // Enable the SPI
+  // Write VM0[3] = 0 to disable the OSD image.
+  Serial.println("Enable SPI, disable OSD output (section)");
+
+  MAX7456_previous_SPCR = SPCR;  // save SPCR, so we play nice with other SPI peripherals
+  SPCR = MAX7456_SPCR;  // set SPCR to what we need
+
+  digitalWrite(_slave_select, LOW);
+  MAX7456_spi_transfer(VM0_WRITE_ADDR);
+  MAX7456_spi_transfer(0x00|VERTICAL_SYNC_NEXT_VSYNC); // double check that the other bits can be zero
+  
+  // Write CMAH[7:0]  = xxH  to select the character (0–255) to be read
+  MAX7456_spi_transfer(CMAH_WRITE_ADDR);
+  MAX7456_spi_transfer(addr);
+
+  for(int i = 0; i < 54; i++)
+  {
+    // Write CMAL[7:0] = xxH to select the 4-pixel byte (0–63) in the character to be read
+    MAX7456_spi_transfer(CMAL_WRITE_ADDR);
+    MAX7456_spi_transfer(i);
+    
+    // Write CMDI[7:0] = xxH to set the pixel values of the selected part of the character
+    MAX7456_spi_transfer(CMDI_WRITE_ADDR);
+    MAX7456_spi_transfer(character[i]);
+  }
+
+  // Write CMM[7:0] = 1010xxxx to write the character data from the shadow RAM to the NVRAM
+  MAX7456_spi_transfer(CMM_WRITE_ADDR);
+  MAX7456_spi_transfer(0b10100000); // Double check that bits 0-3 can be zero
+  
+  // Wait at least 12ms to finish writing
+  delay(150);
+
+  // Write VM0[3] = 1 to enable the OSD image display.
+  MAX7456_spi_transfer(VM0_WRITE_ADDR);
+  MAX7456_spi_transfer(VERTICAL_SYNC_NEXT_VSYNC|OSD_ENABLE);
+  
+  digitalWrite(_slave_select, HIGH);
+  SPCR = MAX7456_previous_SPCR;   // restore SPCR
+}

@@ -29,11 +29,20 @@
 #define VM0_WRITE_ADDR   0x00
 #define VM0_READ_ADDR   0x80
 #define VM1_WRITE_ADDR   0x01
-#define STATUS_ADDR  0x0a
+#define CMAL_READ_ADDR  0x0a
+#define CMAL_WRITE_ADDR  0x8a
 #define HOS_READ_ADDR 0x82
 #define VOS_READ_ADDR 0x83
 #define HOS_WRITE_ADDR 0x02
 #define VOS_WRITE_ADDR 0x03
+#define CMAH_READ_ADDR 0x89
+#define CMAH_WRITE_ADDR 0x09
+#define CMM_READ_ADDR 0x88
+#define CMM_WRITE_ADDR 0x08
+// There is no CMDO write address
+#define CMDO_READ_ADDR 0xC1
+#define CMDI_READ_ADDR 0x8B
+#define CMDI_WRITE_ADDR 0x0B
 
 // video mode register 0 bits
 #define VIDEO_BUFFER_DISABLE 0x01
@@ -116,6 +125,8 @@ class MAX7456 : public Print
   void invert(byte onoff);
   void invert();
   void noInvert();
+  void read_character(byte addr, char character[]);
+  void write_character(byte addr, char character[]);
  private:
   //  byte MAX7456_spi_transfer(unsigned char data);
   byte MAX7456_SPCR, MAX7456_previous_SPCR;

@@ -17,6 +17,9 @@ pixels in the OSD chip docs).
 Vertical offset is between 0 and 31 (corresponding to -15 to +16 pixels
 in the OSD chip docs).
 
+$GETOF
+Get the current horizontal and vertical offset
+
 $VIDIN,0,
 Set the video input. Hardware supports lines 0 to 3.
 
